@@ -8,7 +8,35 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
-Get-Command cmake, nvcc -CommandType Application -ErrorAction Stop | Out-Null
+$missingTools = @()
+
+if (-not (Get-Command cmake -CommandType Application -ErrorAction SilentlyContinue)) {
+  $missingTools += @'
+CMake was not found on PATH.
+Install with winget:
+  winget install --exact --id Kitware.CMake --source winget
+Or with Scoop:
+  scoop install cmake
+Then open a new PowerShell window and verify:
+  cmake --version
+'@
+}
+
+if (-not (Get-Command nvcc -CommandType Application -ErrorAction SilentlyContinue)) {
+  $missingTools += @'
+NVIDIA CUDA compiler (nvcc) was not found on PATH.
+The display driver alone is not enough. Install the CUDA Toolkit with:
+  winget install --exact --id Nvidia.CUDA --source winget
+Then open a new PowerShell window and verify:
+  nvcc --version
+If CUDA is already installed, add its bin directory
+(C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v<version>\bin) to PATH.
+'@
+}
+
+if ($missingTools) {
+  throw "Cannot install llama.cpp until build prerequisites are available:`n`n$($missingTools -join "`n`n")"
+}
 
 $llamaRoot = Join-Path $WorkspaceRoot 'llama.cpp'
 $build = Join-Path $llamaRoot 'build'

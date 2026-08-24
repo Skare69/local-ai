@@ -11,6 +11,29 @@ Qwen3.8 27B Aggressive GGUF release.
 - CMake (`cmake`) and CUDA compiler (`nvcc`) available on `PATH`
 - MSVC C++ build tools and an NVIDIA driver compatible with the target GPU
 
+### Install CMake and CUDA Toolkit
+
+Install with winget:
+
+```powershell
+winget install --exact --id Kitware.CMake --source winget
+winget install --exact --id Nvidia.CUDA --source winget
+```
+
+If CMake is unavailable through winget, use Scoop:
+
+```powershell
+scoop install cmake
+```
+
+The NVIDIA display driver does not include `nvcc`; the CUDA Toolkit is required.
+After installation, open a new PowerShell window and verify:
+
+```powershell
+cmake --version
+nvcc --version
+```
+
 ## 1. Install llama.cpp
 
 ```powershell
