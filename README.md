@@ -20,6 +20,9 @@ winget install --exact --id Kitware.CMake --source winget
 winget install --exact --id Nvidia.CUDA --source winget
 ```
 
+Alternatively, download the CUDA Toolkit from
+[NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads).
+
 If CMake is unavailable through winget, use Scoop:
 
 ```powershell

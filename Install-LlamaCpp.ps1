@@ -27,6 +27,8 @@ if (-not (Get-Command nvcc -CommandType Application -ErrorAction SilentlyContinu
 NVIDIA CUDA compiler (nvcc) was not found on PATH.
 The display driver alone is not enough. Install the CUDA Toolkit with:
   winget install --exact --id Nvidia.CUDA --source winget
+Or download it from NVIDIA:
+  https://developer.nvidia.com/cuda-downloads
 Then open a new PowerShell window and verify:
   nvcc --version
 If CUDA is already installed, add its bin directory
