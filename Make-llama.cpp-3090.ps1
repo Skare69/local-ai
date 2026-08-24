@@ -1,11 +1,14 @@
+#Requires -Version 7.4
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
+
 cd C:\workspace\
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cpp
 git checkout 4df29be4f4c3673f428170fda944a5b19f743bb8
 
-curl.exe -L -o HauhauCS-FastMTP-llama.cpp.patch `
+curl.exe -fL -o HauhauCS-FastMTP-llama.cpp.patch `
   https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/HauhauCS-FastMTP-llama.cpp.patch
-git apply --check HauhauCS-FastMTP-llama.cpp.patch
 git apply HauhauCS-FastMTP-llama.cpp.patch
 
 # Just for re-building remove previous build first
@@ -20,3 +23,4 @@ cmake -B build `
   -DLLAMA_BUILD_TESTS=OFF
 
 cmake --build build --config Release --target llama-server --parallel
+Write-Host "OK: $(Resolve-Path build\bin\Release\llama-server.exe)"
