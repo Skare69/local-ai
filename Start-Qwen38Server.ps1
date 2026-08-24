@@ -4,7 +4,10 @@ param(
   [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot),
   [Parameter(Mandatory)]
   [ValidateSet('Q8_K_P', 'Q6_K_P', 'Q5_K_P', 'Q4_K_P', 'IQ4_XS', 'Q3_K_P', 'IQ3_M', 'IQ3_XS', 'Q2_K_P', 'IQ2_M')]
-  [string]$Quantization
+  [string]$Quantization,
+  [Parameter(Mandatory)]
+  [ValidateRange(1, 262144)]
+  [int]$ContextSize
 )
 
 $ErrorActionPreference = 'Stop'
@@ -21,7 +24,7 @@ try {
   --spec-draft-n-max 3 `
   --spec-draft-p-min 0 `
   --mmproj .\mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf `
-  --ctx-size 131072 `
+  --ctx-size $ContextSize `
   --flash-attn on `
   --cache-type-k q4_0 `
   --cache-type-v q4_0 `

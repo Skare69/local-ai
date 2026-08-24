@@ -118,12 +118,15 @@ instead of mixing it into answer text.
 
 ## 4. Start the server
 
-Pass the same quantization selected during installation. The checked-in
-launcher also expects the FastMTP sidecar, chat template, and vision projector:
+Pass the same quantization selected during installation and a context size that
+fits available VRAM. Valid context range is `1..262144`:
 
 ```powershell
-.\Start-Qwen38Server.ps1 -Quantization Q4_K_P
+.\Start-Qwen38Server.ps1 -Quantization Q4_K_P -ContextSize 32768
 ```
+
+The launcher also expects the FastMTP sidecar, chat template, and vision
+projector.
 
 Pass `-WorkspaceRoot <workspace-root>` when `llama.cpp` is not beside this
 repository.
@@ -134,7 +137,7 @@ Server defaults:
 - Model alias: `qwen3.8-27b`
 - Official thinking sampler: temperature `1.0`, top-k `20`, top-p `0.95`,
   min-p `0`, presence penalty `0`, repeat penalty `1.0`
-- Qwen3.8 native context maximum: `262144`; configured context and KV cache
-  must fit available VRAM
+- Context and KV-cache memory grow with `-ContextSize`; use the smallest value
+  the workload needs
 - Disable thinking with
   `--chat-template-kwargs '{"enable_thinking":false}'`
