@@ -1,15 +1,20 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 param(
-  [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot)
+  [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot),
+  [Parameter(Mandatory)]
+  [ValidateSet('Q8_K_P', 'Q6_K_P', 'Q5_K_P', 'Q4_K_P', 'IQ4_XS', 'Q3_K_P', 'IQ3_M', 'IQ3_XS', 'Q2_K_P', 'IQ2_M')]
+  [string]$Quantization
 )
 
 $ErrorActionPreference = 'Stop'
 
+$model = ".\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-$Quantization.gguf"
+
 Push-Location (Join-Path $WorkspaceRoot 'llama.cpp')
 try {
   & .\build\bin\Release\llama-server.exe `
-  --model .\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf `
+  --model $model `
   --spec-draft-model .\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf `
   --spec-draft-ngl all `
   --spec-type draft-mtp `

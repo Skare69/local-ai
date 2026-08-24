@@ -57,44 +57,48 @@ Examples:
 Blackwell `120` requires CUDA 12.8+. A wrong value can fail at runtime with
 `no kernel image is available for execution on the device`.
 
-## 2. Install support assets
+## 2. Install model and support assets
 
-Download the fixed chat template and FastMTP sidecar. Existing files are left
-untouched:
+Model repository:
+[HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF)
+
+Choose one quantization:
+
+| `-Quantization` | File size |
+|---|---:|
+| `IQ2_M` | 10.32 GB |
+| `Q2_K_P` | 10.68 GB |
+| `IQ3_XS` | 12.18 GB |
+| `IQ3_M` | 12.79 GB |
+| `Q3_K_P` | 13.44 GB |
+| `IQ4_XS` | 15.71 GB |
+| `Q4_K_P` | 17.92 GB |
+| `Q5_K_P` | 20.22 GB |
+| `Q6_K_P` | 25.92 GB |
+| `Q8_K_P` | 31.46 GB |
+
+The installer downloads the selected target model, fixed chat template, and
+FastMTP sidecar. Existing files are left untouched:
 
 ```powershell
-.\Install-Qwen38Assets.ps1
+.\Install-Qwen38Assets.ps1 -Quantization Q4_K_P
 ```
 
 Add the optional vision projector:
 
 ```powershell
-.\Install-Qwen38Assets.ps1 -Vision
+.\Install-Qwen38Assets.ps1 -Quantization Q4_K_P -Vision
 ```
 
 The default destination is the sibling `llama.cpp` checkout. Pass
 `-Destination <llama.cpp-path>` to use another checkout.
-
-## 3. Download a target model
-
-Model repository:
-[HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF)
-
-The asset installer deliberately does not choose a target quant. Run the
-following from the `llama.cpp` checkout to download the quant expected by the
-checked-in server launcher:
-
-```powershell
-$repo = "https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main"
-curl.exe -fL --remove-on-error -O "$repo/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf"
-```
 
 - One FastMTP sidecar works with every target quant.
 - FastMTP sidecar SHA-256:
   `115e618e1f73cb50817ed5856f0551c6bf9c3d94df96f440eaca78dc63b8968b`
 - The vision projector is needed only for image or video input.
 
-## 4. Chat template
+## 3. Chat template
 
 Source:
 [froggeric/Qwen-Fixed-Chat-Templates](https://huggingface.co/froggeric/Qwen-Fixed-Chat-Templates)
@@ -112,13 +116,13 @@ Use it with:
 The DeepSeek reasoning format places `<think>` output in `reasoning_content`
 instead of mixing it into answer text.
 
-## 5. Start the server
+## 4. Start the server
 
-The checked-in launcher expects the Q4_K_P target, FastMTP sidecar, chat
-template, and vision projector listed above:
+Pass the same quantization selected during installation. The checked-in
+launcher also expects the FastMTP sidecar, chat template, and vision projector:
 
 ```powershell
-.\Start-Qwen38Server.ps1
+.\Start-Qwen38Server.ps1 -Quantization Q4_K_P
 ```
 
 Pass `-WorkspaceRoot <workspace-root>` when `llama.cpp` is not beside this
