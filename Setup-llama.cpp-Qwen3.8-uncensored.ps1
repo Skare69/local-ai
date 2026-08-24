@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 [CmdletBinding()]
 param(
-  [string]$Destination = 'C:\workspace\llama.cpp',
+  [string]$Destination = (Join-Path (Split-Path -Parent $PSScriptRoot) 'llama.cpp'),
   [switch]$Vision
 )
 

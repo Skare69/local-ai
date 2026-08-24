@@ -1,5 +1,14 @@
-cd "C:\workspace\llama.cpp\"
-.\build\bin\Release\llama-server.exe `
+#Requires -Version 7.4
+[CmdletBinding()]
+param(
+  [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot)
+)
+
+$ErrorActionPreference = 'Stop'
+
+Push-Location (Join-Path $WorkspaceRoot 'llama.cpp')
+try {
+  & .\build\bin\Release\llama-server.exe `
   --model .\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf `
   --spec-draft-model .\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf `
   --spec-draft-ngl all `
@@ -35,5 +44,8 @@ cd "C:\workspace\llama.cpp\"
   --host 127.0.0.1 `
   --port 8080 `
   --alias "qwen3.8-27b"
+} finally {
+  Pop-Location
+}
 
 #  --ctx-size 65536 `

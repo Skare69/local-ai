@@ -8,15 +8,23 @@ Everything needed to rebuild my local llama.cpp setup (RTX 3090) from scratch.
 .\Make-llama.cpp-3090.ps1
 ```
 
-Clones llama.cpp pinned to `4df29be4f4c3673f428170fda944a5b19f743bb8`, applies the
+By default, workspace root is parent of this repo, so `local-ai` and `llama.cpp` are
+siblings. Override either build setting without editing the script:
+
+```powershell
+.\Make-llama.cpp-3090.ps1 -WorkspaceRoot D:\projects -CudaArchitecture 89
+```
+
+Clones llama.cpp into `<WorkspaceRoot>\llama.cpp` pinned to
+`4df29be4f4c3673f428170fda944a5b19f743bb8`, applies the
 [HauhauCS FastMTP patch](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/HauhauCS-FastMTP-llama.cpp.patch)
-(draft-vocab trim in `src/models/qwen35.cpp`), builds `llama-server` with CUDA for arch 86 (3090).
+(draft-vocab trim in `src/models/qwen35.cpp`), and builds `llama-server`.
 
 If draft loading reports `expected 5120, 248320, got 5120, 32768`: sidecar is fine, you're running an unpatched binary — use `build\bin\Release\llama-server.exe` from this checkout.
 
 ### CMAKE_CUDA_ARCHITECTURES for other hardware
 
-The script hardcodes `-DCMAKE_CUDA_ARCHITECTURES=86`. Change it to match the target GPU
+Pass the target compute capability with `-CudaArchitecture`
 ([full list](https://developer.nvidia.com/cuda-gpus)):
 
 | Value | Architecture | Cards |
@@ -30,8 +38,8 @@ The script hardcodes `-DCMAKE_CUDA_ARCHITECTURES=86`. Change it to match the tar
 | 100 | Blackwell (datacenter) | B100/B200/GB200 |
 | 120 | Blackwell (consumer) | RTX 50xx, RTX PRO Blackwell (needs CUDA 12.8+) |
 
-- Work laptop RTX 3500 Ada → `89`.
-- Multiple targets in one binary: semicolon list, e.g. `-DCMAKE_CUDA_ARCHITECTURES="86;89"` (PowerShell: quote it).
+- Work laptop RTX 3500 Ada → `-CudaArchitecture 89`.
+- Multiple targets in one binary: `-CudaArchitecture "86;89"` (quote the semicolon list).
 - Wrong value fails at runtime with `no kernel image is available for execution on the device`.
 
 
@@ -49,13 +57,13 @@ Add the optional vision projector:
 .\Setup-llama.cpp-Qwen3.8-uncensored.ps1 -Vision
 ```
 
-Default destination is `C:\workspace\llama.cpp`; override with `-Destination <path>`.
+Default destination is sibling `llama.cpp`; override with `-Destination <path>`.
 
 ## 3. Model: Qwen3.8-27B Uncensored (HauhauCS Aggressive MTP)
 
 https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF
 
-Choose and download a target quant into `C:\workspace\llama.cpp\`. The setup script
+Choose and download a target quant into the `llama.cpp` checkout. The setup script
 deliberately does not choose one; Q4_K_P is the 17.9 GB target used here:
 
 ```powershell
@@ -82,26 +90,16 @@ Use with `--jinja --chat-template-file chat_template.jinja --reasoning-format de
 
 ## 5. Serve
 
-Run the checked-in launcher:
+Run the checked-in launcher. It also defaults to sibling `llama.cpp`:
 
 ```powershell
 .\Launch-llama.cpp-Qwen3.8-uncensored.ps1
 ```
 
-Equivalent command:
+Override when the checkout lives elsewhere:
 
 ```powershell
-cd C:\workspace\llama.cpp
-.\build\bin\Release\llama-server.exe `
-  --model Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf `
-  --spec-draft-model Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf `
-  --spec-draft-ngl all --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-p-min 0 `
-  --ctx-size 32768 `
-  --n-gpu-layers all --flash-attn on --no-mmap `
-  --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0 --repeat-penalty 1.0 `
-  --jinja --chat-template-file chat_template.jinja `
-  --reasoning on --reasoning-preserve --reasoning-format deepseek `
-  --host 127.0.0.1 --port 8080
+.\Launch-llama.cpp-Qwen3.8-uncensored.ps1 -WorkspaceRoot D:\projects
 ```
 
 Notes:
