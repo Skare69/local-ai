@@ -1,108 +1,136 @@
 # local-ai
 
-Everything needed to rebuild my local llama.cpp setup (RTX 3090) from scratch.
+PowerShell 7 scripts for building a CUDA-enabled, FastMTP-patched
+[llama.cpp](https://github.com/ggml-org/llama.cpp) and serving the HauhauCS
+Qwen3.8 27B Aggressive GGUF release.
 
-## 1. Build llama.cpp
+## Requirements
+
+- Windows with PowerShell 7.4+
+- Git
+- CMake and MSVC C++ build tools
+- NVIDIA driver and CUDA toolkit compatible with the target GPU
+
+## 1. Install llama.cpp
 
 ```powershell
-.\Make-llama.cpp-3090.ps1
+.\Install-LlamaCpp.ps1 -CudaArchitecture native
 ```
 
-By default, workspace root is parent of this repo, so `local-ai` and `llama.cpp` are
-siblings. Override either build setting without editing the script:
+By default, `llama.cpp` is cloned beside this repository. Pass
+`-WorkspaceRoot <workspace-root>` when both repositories should live elsewhere.
 
-```powershell
-.\Make-llama.cpp-3090.ps1 -WorkspaceRoot D:\projects -CudaArchitecture 89
-```
+The script pins llama.cpp to `4df29be4f4c3673f428170fda944a5b19f743bb8`,
+applies the
+[HauhauCS FastMTP patch](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/HauhauCS-FastMTP-llama.cpp.patch),
+and builds `llama-server`.
 
-Clones llama.cpp into `<WorkspaceRoot>\llama.cpp` pinned to
-`4df29be4f4c3673f428170fda944a5b19f743bb8`, applies the
-[HauhauCS FastMTP patch](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/HauhauCS-FastMTP-llama.cpp.patch)
-(draft-vocab trim in `src/models/qwen35.cpp`), and builds `llama-server`.
+If draft loading reports `expected 5120, 248320, got 5120, 32768`, the sidecar
+is correct but the server binary is unpatched. Use the binary produced by this
+checkout.
 
-If draft loading reports `expected 5120, 248320, got 5120, 32768`: sidecar is fine, you're running an unpatched binary — use `build\bin\Release\llama-server.exe` from this checkout.
+### CUDA architectures
 
-### CMAKE_CUDA_ARCHITECTURES for other hardware
+`native` is simplest when compiling on the target GPU with CMake 3.24+.
+For cross-compilation or a multi-GPU binary, pass an explicit value from the
+[NVIDIA compute-capability list](https://developer.nvidia.com/cuda-gpus):
 
-Pass the target compute capability with `-CudaArchitecture`
-([full list](https://developer.nvidia.com/cuda-gpus)):
-
-| Value | Architecture | Cards |
-|---|---|---|
-| 61 | Pascal | GTX 10xx |
-| 75 | Turing | RTX 20xx, GTX 16xx |
-| 80 | Ampere (datacenter) | A100 |
-| 86 | Ampere (consumer) | RTX 30xx, RTX A-series workstation |
-| 89 | Ada Lovelace | RTX 40xx, RTX 2000–5000 Ada laptop/workstation |
+| Value | Architecture | Example GPUs |
+|---:|---|---|
+| 61 | Pascal | GTX 10 series |
+| 70 | Volta | V100 |
+| 75 | Turing | RTX 20 and GTX 16 series |
+| 80 | Ampere datacenter | A100 |
+| 86 | Ampere consumer/workstation | RTX 30 and RTX A series |
+| 89 | Ada Lovelace | RTX 40 and RTX Ada workstation series |
 | 90 | Hopper | H100/H200 |
-| 100 | Blackwell (datacenter) | B100/B200/GB200 |
-| 120 | Blackwell (consumer) | RTX 50xx, RTX PRO Blackwell (needs CUDA 12.8+) |
+| 100 | Blackwell datacenter | B100/B200/GB200 |
+| 120 | Blackwell consumer/workstation | RTX 50 and RTX PRO Blackwell series |
 
-- Work laptop RTX 3500 Ada → `-CudaArchitecture 89`.
-- Multiple targets in one binary: `-CudaArchitecture "86;89"` (quote the semicolon list).
-- Wrong value fails at runtime with `no kernel image is available for execution on the device`.
-
-
-## 2. Download support assets
-
-Downloads the fixed chat template and FastMTP sidecar only when missing:
+Examples:
 
 ```powershell
-.\Setup-llama.cpp-Qwen3.8-uncensored.ps1
+.\Install-LlamaCpp.ps1 -CudaArchitecture 89
+.\Install-LlamaCpp.ps1 -CudaArchitecture "86;89"
+```
+
+Blackwell `120` requires CUDA 12.8+. A wrong value can fail at runtime with
+`no kernel image is available for execution on the device`.
+
+## 2. Install support assets
+
+Download the fixed chat template and FastMTP sidecar. Existing files are left
+untouched:
+
+```powershell
+.\Install-Qwen38Assets.ps1
 ```
 
 Add the optional vision projector:
 
 ```powershell
-.\Setup-llama.cpp-Qwen3.8-uncensored.ps1 -Vision
+.\Install-Qwen38Assets.ps1 -Vision
 ```
 
-Default destination is sibling `llama.cpp`; override with `-Destination <path>`.
+The default destination is the sibling `llama.cpp` checkout. Pass
+`-Destination <llama.cpp-path>` to use another checkout.
 
-## 3. Model: Qwen3.8-27B Uncensored (HauhauCS Aggressive MTP)
+## 3. Download a target model
 
-https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF
+Model repository:
+[HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF](https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF)
 
-Choose and download a target quant into the `llama.cpp` checkout. The setup script
-deliberately does not choose one; Q4_K_P is the 17.9 GB target used here:
+The asset installer deliberately does not choose a target quant. Run the
+following from the `llama.cpp` checkout to download the quant expected by the
+checked-in server launcher:
 
 ```powershell
 $repo = "https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main"
 curl.exe -fL --remove-on-error -O "$repo/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf"
 ```
 
-- One FastMTP sidecar works with every text quant; requires the patch from step 1.
-- Sidecar SHA-256: `115e618e1f73cb50817ed5856f0551c6bf9c3d94df96f440eaca78dc63b8968b`
-- Sampler (thinking mode, official): `temp 1.0, top-p 0.95, top-k 20, min-p 0, presence 0, repeat 1.0`
+- One FastMTP sidecar works with every target quant.
+- FastMTP sidecar SHA-256:
+  `115e618e1f73cb50817ed5856f0551c6bf9c3d94df96f440eaca78dc63b8968b`
+- The vision projector is needed only for image or video input.
 
-## 4. Chat template: froggeric fixed Qwen template
+## 4. Chat template
 
-https://huggingface.co/froggeric/Qwen-Fixed-Chat-Templates
+Source:
+[froggeric/Qwen-Fixed-Chat-Templates](https://huggingface.co/froggeric/Qwen-Fixed-Chat-Templates)
 
-Drop-in `chat_template.jinja` replacing the official Qwen 3.5/3.6/3.8 template. Fixes
-`enable_thinking=false` crash, empty-think poisoning, JSON-string tool-arg crashes,
-KV-cache invalidation; defaults reasoning effort to `medium` instead of `xhigh`.
+The drop-in `chat_template.jinja` fixes Qwen 3.5/3.6/3.8 template failures,
+including `enable_thinking=false`, empty-think poisoning, serialized tool
+arguments, and KV-cache invalidation.
 
-The setup script downloads it as `chat_template.jinja`.
+Use it with:
 
-Use with `--jinja --chat-template-file chat_template.jinja --reasoning-format deepseek`
-(deepseek format moves `<think>` into `reasoning_content` so agents don't choke on raw thinking tokens).
-
-## 5. Serve
-
-Run the checked-in launcher. It also defaults to sibling `llama.cpp`:
-
-```powershell
-.\Launch-llama.cpp-Qwen3.8-uncensored.ps1
+```text
+--jinja --chat-template-file chat_template.jinja --reasoning-format deepseek
 ```
 
-Override when the checkout lives elsewhere:
+The DeepSeek reasoning format places `<think>` output in `reasoning_content`
+instead of mixing it into answer text.
+
+## 5. Start the server
+
+The checked-in launcher expects the Q4_K_P target, FastMTP sidecar, chat
+template, and vision projector listed above:
 
 ```powershell
-.\Launch-llama.cpp-Qwen3.8-uncensored.ps1 -WorkspaceRoot D:\projects
+.\Start-Qwen38Server.ps1
 ```
 
-Notes:
-- `--ctx-size`: native max is 262144, but Q4_K_P (17.9 GB) + KV must fit 24 GB on the 3090 — tune down as needed.
-- Vision: add `--mmproj mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf`.
-- Thinking off for all requests: `--chat-template-kwargs '{"enable_thinking":false}'` (works thanks to the froggeric template; official template crashes).
+Pass `-WorkspaceRoot <workspace-root>` when `llama.cpp` is not beside this
+repository.
+
+Server defaults:
+
+- OpenAI-compatible endpoint: `http://127.0.0.1:8080`
+- Model alias: `qwen3.8-27b`
+- Official thinking sampler: temperature `1.0`, top-k `20`, top-p `0.95`,
+  min-p `0`, presence penalty `0`, repeat penalty `1.0`
+- Qwen3.8 native context maximum: `262144`; configured context and KV cache
+  must fit available VRAM
+- Disable thinking with
+  `--chat-template-kwargs '{"enable_thinking":false}'`

@@ -2,7 +2,8 @@
 [CmdletBinding()]
 param(
   [string]$WorkspaceRoot = (Split-Path -Parent $PSScriptRoot),
-  [string]$CudaArchitecture = '86'
+  [Parameter(Mandatory)]
+  [string]$CudaArchitecture
 )
 
 $ErrorActionPreference = 'Stop'
