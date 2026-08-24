@@ -167,3 +167,14 @@ Server defaults:
   the workload needs
 - Disable thinking with
   `--chat-template-kwargs '{"enable_thinking":false}'`
+
+## License
+
+Scripts and documentation authored in this repository are available under the
+[MIT License](LICENSE).
+
+Downloaded and upstream components retain their own licenses:
+
+- llama.cpp: MIT
+- HauhauCS model and FastMTP patch: Apache-2.0
+- froggeric Qwen chat template: Apache-2.0
