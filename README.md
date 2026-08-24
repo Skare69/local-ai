@@ -8,8 +8,8 @@ Qwen3.8 27B Aggressive GGUF release.
 
 - Windows with PowerShell 7.4+
 - Git
-- CMake and MSVC C++ build tools
-- NVIDIA driver and CUDA toolkit compatible with the target GPU
+- CMake (`cmake`) and CUDA compiler (`nvcc`) available on `PATH`
+- MSVC C++ build tools and an NVIDIA driver compatible with the target GPU
 
 ## 1. Install llama.cpp
 

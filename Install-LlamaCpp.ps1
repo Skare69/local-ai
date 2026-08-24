@@ -8,6 +8,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
+Get-Command cmake, nvcc -CommandType Application -ErrorAction Stop | Out-Null
 
 $llamaRoot = Join-Path $WorkspaceRoot 'llama.cpp'
 $build = Join-Path $llamaRoot 'build'
