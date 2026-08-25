@@ -1,19 +1,24 @@
 # local-ai
 
-PowerShell 7 scripts for building a CUDA-enabled, FastMTP-patched
-[llama.cpp](https://github.com/ggml-org/llama.cpp) and serving the HauhauCS
-Qwen3.8 27B Aggressive GGUF release.
+PowerShell 7 scripts (Windows host) for building a CUDA-enabled,
+FastMTP-patched [llama.cpp](https://github.com/ggml-org/llama.cpp) and serving
+the HauhauCS Qwen3.8 27B Aggressive GGUF release. Linux and macOS users can
+run the same steps with the shell equivalents in each section.
 
 ## Requirements
 
-- Windows with PowerShell 7.4+
-- Git
-- CMake (`cmake`) and CUDA compiler (`nvcc`) available on `PATH`
-- MSVC C++ build tools and an NVIDIA driver compatible with the target GPU
+- Windows host for the checked-in PowerShell scripts
+- Git, CMake (`cmake`), and CUDA compiler (`nvcc`) available on `PATH`
+- C++ build tools: MSVC on Windows; `build-essential` (apt), Development Tools
+  (dnf), or Xcode Command Line Tools (macOS)
+- NVIDIA driver compatible with the target GPU; CUDA Toolkit provides `nvcc`
+
+Linux and macOS equivalents use bash; run them from this repository's parent
+directory so `<workspace>/local-ai` and `<workspace>/llama.cpp` are siblings.
 
 ### Install CMake and CUDA Toolkit
 
-Install with winget:
+Windows: install with winget:
 
 ```powershell
 winget install --exact --id Kitware.CMake --source winget
@@ -37,6 +42,26 @@ cmake --version
 nvcc --version
 ```
 
+Linux (Debian/Ubuntu):
+
+```bash
+sudo apt install -y cmake nvidia-cuda-toolkit build-essential
+```
+
+Fedora/RHEL:
+
+```bash
+sudo dnf install -y cuda-gcc cmake && sudo dnf module install -y nvidia-driver
+```
+
+NVIDIA's official repositories provide current CUDA packages for both distros;
+follow [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads) if
+distribution packages lag behind.
+
+macOS has no CUDA support; NVIDIA GPUs stopped being supported there after
+High Sierra. Skip this repository's CUDA path on Apple hardware.
+
+
 ## 1. Install llama.cpp
 
 ```powershell
@@ -54,6 +79,25 @@ and builds `llama-server`.
 If draft loading reports `expected 5120, 248320, got 5120, 32768`, the sidecar
 is correct but the server binary is unpatched. Use the binary produced by this
 checkout.
+
+Linux and macOS equivalent:
+
+```bash
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cpp
+git checkout 4df29be4f4c3673f428170fda944a5b19f743bb8
+curl -fL -o HauhauCS-FastMTP-llama.cpp.patch \
+  https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/HauhauCS-FastMTP-llama.cpp.patch
+git apply HauhauCS-FastMTP-llama.cpp.patch
+cmake -S . -B build \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DGGML_CUDA=ON \
+  -DGGML_CUDA_FA_ALL_QUANTS=ON \
+  -DCMAKE_CUDA_ARCHITECTURES=native \
+  -DLLAMA_BUILD_EXAMPLES=OFF \
+  -DLLAMA_BUILD_TESTS=OFF
+cmake --build build --config Release --target llama-server --parallel
+```
 
 ### CUDA architectures
 
@@ -116,6 +160,20 @@ Add the optional vision projector:
 .\Install-Qwen38Assets.ps1 -Quantization Q4_K_P -Vision
 ```
 
+Linux and macOS equivalent:
+
+```bash
+curl -fL --remove-on-error -O \
+  "https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf"
+curl -fL --remove-on-error -o chat_template.jinja \
+  https://huggingface.co/froggeric/Qwen-Fixed-Chat-Templates/resolve/main/chat_template.jinja
+curl -fL --remove-on-error -O \
+  "https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf"
+# Optional vision projector:
+curl -fL --remove-on-error -O \
+  "https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf"
+```
+
 The default destination is the sibling `llama.cpp` checkout. Pass
 `-Destination <llama.cpp-path>` to use another checkout.
 
@@ -149,6 +207,25 @@ fits available VRAM. Valid context range is `1..262144`:
 
 ```powershell
 .\Start-Qwen38Server.ps1 -Quantization Q4_K_P -ContextSize 32768
+```
+
+Linux and macOS equivalent (same flags; binary lives in `build/bin/`):
+
+```bash
+./build/bin/llama-server \
+  --model ./Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-Q4_K_P.gguf \
+  --spec-draft-model ./Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf \
+  --spec-draft-ngl all --spec-type draft-mtp --spec-draft-n-max 3 --spec-draft-p-min 0 \
+  --mmproj ./mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf \
+  --ctx-size 32768 \
+  --flash-attn on --cache-type-k q4_0 --cache-type-v q4_0 \
+  --cache-type-k-draft q8_0 --cache-type-v-draft q8_0 \
+  --n-gpu-layers all --split-mode none --batch-size 2048 --ubatch-size 512 \
+  --temp 1.0 --top-k 20 --top-p 0.95 --min-p 0 --presence-penalty 0 --repeat-penalty 1.0 \
+  --jinja --chat-template-file ./chat_template.jinja \
+  --reasoning on --reasoning-effort normal --reasoning-preserve --reasoning-format deepseek \
+  --image-min-tokens 1024 --parallel 1 --host 127.0.0.1 --port 8080 \
+  --alias "qwen3.8-27b"
 ```
 
 The launcher also expects the FastMTP sidecar, chat template, and vision
