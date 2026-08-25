@@ -157,17 +157,24 @@ Endpoint `http://127.0.0.1:8080`, alias `qwen3.8-27b`, official thinking sampler
 ### Windows
 
 ```powershell
-.\Start-Qwen38Server.ps1 -Quantization Q4_K_P -ContextSize 32768 [-Vision] [-WorkspaceRoot <workspace-root>]
+.\Start-Qwen38Server.ps1 -Quantization Q4_K_P -ContextSize 32768 [-GpuLayers all|N] [-Vision] [-WorkspaceRoot <workspace-root>]
 ```
 
 ### Linux / macOS
 
 ```bash
-./start-qwen38-server.sh -q Q4_K_P -c 32768 [-V] [-w /path/to/workspace]
+./start-qwen38-server.sh -q Q4_K_P -c 32768 [-n all|N] [-V] [-w /path/to/workspace]
 ```
 
-Disable thinking for all requests:
+`-GpuLayers` / `-n`: `all` (default) or a positive integer — lower it when the
+GPU cannot hold the whole model. Disable thinking for all requests:
 `--chat-template-kwargs '{"enable_thinking":false}'`.
+
+Bump the llama.cpp pin by editing `PINNED_LLAMA_COMMIT`; both install scripts
+read it from there.
+
+All downloaded GGUF files are verified against HauhauCS' upstream
+`SHA256SUMS` manifest after download and on re-runs.
 
 ## License
 

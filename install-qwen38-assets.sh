@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Download a Qwen3.8 target quant plus chat template, FastMTP sidecar, and
-# optional vision projector. Existing files are left untouched.
+# optional vision projector. Existing files are left untouched but verified.
 set -euo pipefail
 
 usage() {
@@ -32,24 +32,45 @@ esac
 mkdir -p "$destination"
 model_repo="https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main"
 
-download() {
-  local url="$1" out="$2"
-  [[ -e "$out" ]] && return 0
-  curl -fL --remove-on-error -o "$out" "$url"
-}
-
 model_name="Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-$quantization.gguf"
-download "$model_repo/$model_name" "$destination/$model_name"
-
-download "https://huggingface.co/froggeric/Qwen-Fixed-Chat-Templates/resolve/main/chat_template.jinja" \
-  "$destination/chat_template.jinja"
-
-download "$model_repo/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf" \
-  "$destination/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf"
-
+targets=(
+  "$model_repo/$model_name|$destination/$model_name"
+  "https://huggingface.co/froggeric/Qwen-Fixed-Chat-Templates/resolve/main/chat_template.jinja|$destination/chat_template.jinja"
+  "$model_repo/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf|$destination/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf"
+)
 if [[ "$vision" -eq 1 ]]; then
-  download "$model_repo/mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf" \
-    "$destination/mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf"
+  targets+=("$model_repo/mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf|$destination/mmproj-Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-BF16.gguf")
 fi
 
-echo "OK: $quantization model and assets in $destination"
+for target in "${targets[@]}"; do
+  url="${target%%|*}"
+  out="${target#*|}"
+  [[ -e "$out" ]] || curl -fL --remove-on-error -o "$out" "$url"
+done
+
+# Verify every GGUF against the upstream SHA256SUMS manifest (template excluded:
+# froggeric publishes no checksums).
+sums_file="$(mktemp)"
+trap 'rm -f "$sums_file"' EXIT
+curl -fsL -o "$sums_file" "$model_repo/SHA256SUMS"
+
+for target in "${targets[@]}"; do
+  out="${target#*|}"
+  case "$out" in
+    *.gguf) ;;
+    *) continue ;;
+  esac
+  file_name="$(basename "$out")"
+  expected="$(awk -v name="$file_name" '{ if ($2 == name || $2 == "*" name) print $1 }' "$sums_file")"
+  if [[ -z "$expected" ]]; then
+    echo "No checksum found for $file_name in SHA256SUMS" >&2
+    exit 1
+  fi
+  actual="$(sha256sum "$out" | awk '{print $1}')"
+  if [[ "$actual" != "$expected" ]]; then
+    echo "Checksum mismatch for ${file_name}: expected $expected, got $actual" >&2
+    exit 1
+  fi
+done
+
+echo "OK: $quantization model and assets verified in $destination"

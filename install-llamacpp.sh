@@ -8,6 +8,8 @@ usage() {
 }
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+pinned_commit="$(tr -d '[:space:]' < "$script_dir/PINNED_LLAMA_COMMIT")"
+
 workspace_root="$(dirname "$script_dir")"
 arch=""
 
@@ -52,7 +54,7 @@ patch_url="https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggre
 
 mkdir -p "$workspace_root"
 git clone https://github.com/ggerganov/llama.cpp "$llama_root"
-git -C "$llama_root" checkout 4df29be4f4c3673f428170fda944a5b19f743bb8
+git -C "$llama_root" checkout "$pinned_commit"
 
 curl -fL -o "$patch_file" "$patch_url"
 git -C "$llama_root" apply "$patch_file"

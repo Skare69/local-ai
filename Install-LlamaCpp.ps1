@@ -8,6 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
+$pinnedCommit = (Get-Content (Join-Path $PSScriptRoot 'PINNED_LLAMA_COMMIT') -Raw).Trim()
+
 $missingTools = @()
 
 if (-not (Get-Command cmake -CommandType Application -ErrorAction SilentlyContinue)) {
@@ -46,13 +48,12 @@ $patch = Join-Path $llamaRoot 'HauhauCS-FastMTP-llama.cpp.patch'
 
 New-Item -ItemType Directory -Force $WorkspaceRoot | Out-Null
 git clone https://github.com/ggerganov/llama.cpp $llamaRoot
-git -C $llamaRoot checkout 4df29be4f4c3673f428170fda944a5b19f743bb8
+git -C $llamaRoot checkout $pinnedCommit
 
 curl.exe -fL -o $patch `
   https://huggingface.co/HauhauCS/Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-MTP-GGUF/resolve/main/HauhauCS-FastMTP-llama.cpp.patch
 git -C $llamaRoot apply $patch
 
-# Just for re-building remove previous build first
 # Remove-Item -Recurse -Force $build -ErrorAction SilentlyContinue
 
 cmake -S $llamaRoot -B $build `

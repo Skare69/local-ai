@@ -8,6 +8,8 @@ param(
   [Parameter(Mandatory)]
   [ValidateRange(1, 262144)]
   [int]$ContextSize,
+  [ValidatePattern('^(all|[1-9][0-9]*)$', ErrorMessage = 'GpuLayers must be "all" or a positive integer')]
+  [string]$GpuLayers = 'all',
   [switch]$Vision
 )
 
@@ -18,7 +20,7 @@ $model = ".\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-$Quantization.gguf"
 $serverArgs = @(
   "--model", $model,
   "--spec-draft-model", ".\Qwen3.8-27B-Uncensored-HauhauCS-Aggressive-FastMTP-32K.gguf",
-  "--spec-draft-ngl", "all",
+  "--spec-draft-ngl", $GpuLayers,
   "--spec-type", "draft-mtp",
   "--spec-draft-n-max", "3",
   "--spec-draft-p-min", "0"
@@ -33,7 +35,7 @@ $serverArgs += @(
   "--cache-type-v", "q4_0",
   "--cache-type-k-draft", "q8_0",
   "--cache-type-v-draft", "q8_0",
-  "--n-gpu-layers", "all",
+  "--n-gpu-layers", $GpuLayers,
   "--split-mode", "none",
   "--batch-size", "2048",
   "--ubatch-size", "512",

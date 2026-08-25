@@ -1,0 +1,38 @@
+name: Lint
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: bash syntax check
+        run: |
+          for f in *.sh; do
+            bash -n "$f"
+          done
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@2.0.0
+        with:
+          severity: warning
+
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell parse check
+        shell: pwsh
+        run: |
+          $failed = $false
+          foreach ($file in Get-ChildItem *.ps1) {
+            $tokens = $null; $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$tokens, [ref]$errors)
+            if ($errors.Count) {
+              $failed = $true
+              Write-Host "::error file=$($file.Name):: $($errors[0].Message)"
+            }
+          }
+          exit ($failed ? 1 : 0)
