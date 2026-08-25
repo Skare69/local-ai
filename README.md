@@ -150,20 +150,20 @@ KV-cache invalidation. Used via:
 ## 4. Start the server
 
 Pass the same quantization as installed plus a context size that fits VRAM
-(valid range `1..262144`). Both launchers expect sidecar, template, and
-projector in the checkout; endpoint `http://127.0.0.1:8080`, alias
-`qwen3.8-27b`, official thinking sampler.
+(valid range `1..262144`). Both launchers default to text-only; add
+`-Vision` / `-V` to serve the vision projector (needs it downloaded via step 2).
+Endpoint `http://127.0.0.1:8080`, alias `qwen3.8-27b`, official thinking sampler.
 
 ### Windows
 
 ```powershell
-.\Start-Qwen38Server.ps1 -Quantization Q4_K_P -ContextSize 32768 [-WorkspaceRoot <workspace-root>]
+.\Start-Qwen38Server.ps1 -Quantization Q4_K_P -ContextSize 32768 [-Vision] [-WorkspaceRoot <workspace-root>]
 ```
 
 ### Linux / macOS
 
 ```bash
-./start-qwen38-server.sh -q Q4_K_P -c 32768 [-w /path/to/workspace]
+./start-qwen38-server.sh -q Q4_K_P -c 32768 [-V] [-w /path/to/workspace]
 ```
 
 Disable thinking for all requests:
