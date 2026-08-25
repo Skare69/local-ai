@@ -14,9 +14,16 @@ server on `http://127.0.0.1:8080`.
 
 ## Prerequisites (all platforms)
 
+Common:
+
 - Git
-- CMake (`cmake`) and CUDA compiler (`nvcc`) on `PATH`
-- C++ build tools and an NVIDIA driver compatible with the target GPU
+- CMake (`cmake`) on `PATH`
+- A C++ toolchain: MSVC (Windows), `build-essential`/Development Tools
+  (Linux), or Xcode Command Line Tools (macOS)
+
+CUDA platforms additionally need:
+
+- CUDA compiler (`nvcc`) on `PATH` and an NVIDIA driver matching the GPU
 
 ### Install build tools
 
@@ -41,12 +48,20 @@ sudo apt install -y cmake nvidia-cuda-toolkit build-essential
 [NVIDIA CUDA Downloads](https://developer.nvidia.com/cuda-downloads);
 distribution packages often lag behind.
 
-The display driver alone never includes `nvcc`. After installing, verify in a
-new shell:
+**macOS (Apple silicon):** no CUDA involved — llama.cpp uses Metal. Install the
+toolchain and CMake with Homebrew ([brew.sh](https://brew.sh)):
+
+```bash
+xcode-select --install        # C/C++ compiler toolchain
+brew install cmake
+```
+
+CUDA note: the display driver alone never includes `nvcc`. After installing,
+verify in a new shell:
 
 ```bash
 cmake --version
-nvcc --version
+nvcc --version   # CUDA platforms only
 ```
 
 ## 1. Install llama.cpp
