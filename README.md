@@ -1,4 +1,4 @@
-# local-ai
+# llamacpp-qwen38-setup
 
 Scripts for building a CUDA-enabled, FastMTP-patched
 [llama.cpp](https://github.com/ggml-org/llama.cpp) and serving the HauhauCS
