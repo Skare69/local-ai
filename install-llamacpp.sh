@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Install (clone, patch, build) the FastMTP-patched CUDA llama.cpp.
+# Install (clone, patch, build) the FastMTP-patched llama.cpp.
+# CUDA on Linux/Windows; Metal (automatic) on Apple Silicon.
 set -euo pipefail
 
 usage() {
   echo "Usage: $0 -a <cuda-architectures> [-w <workspace-root>]" >&2
+  echo "-a is required on CUDA platforms, ignored on macOS (Metal is used instead)." >&2
   exit 2
 }
 
@@ -20,18 +22,25 @@ while getopts "a:w:h" opt; do
     *) usage ;;
   esac
 done
-[[ -n "$arch" ]] || usage
+
+os="$(uname)"
 
 missing_tools=""
-command -v cmake >/dev/null 2>&1 || missing_tools+="
+if [[ "$os" == "Darwin" ]]; then
+  command -v cmake >/dev/null 2>&1 || missing_tools+="
+CMake was not found on PATH.
+Install it with:
+  brew install cmake
+"
+else
+  [[ -n "$arch" ]] || usage
+  command -v cmake >/dev/null 2>&1 || missing_tools+="
 CMake was not found on PATH.
 Install it with your package manager, e.g.:
   sudo apt install cmake        # Debian/Ubuntu
   sudo dnf install cmake        # Fedora/RHEL
-  brew install cmake            # macOS
 "
-
-command -v nvcc >/dev/null 2>&1 || missing_tools+="
+  command -v nvcc >/dev/null 2>&1 || missing_tools+="
 NVIDIA CUDA compiler (nvcc) was not found on PATH.
 The display driver alone is not enough. Install the CUDA Toolkit:
   https://developer.nvidia.com/cuda-downloads
@@ -40,6 +49,7 @@ Then verify:
 If CUDA is already installed, add its bin directory
 (/usr/local/cuda/bin) to PATH.
 "
+fi
 
 if [[ -n "$missing_tools" ]]; then
   echo "Cannot install llama.cpp until build prerequisites are available:" >&2
@@ -62,13 +72,23 @@ git -C "$llama_root" apply "$patch_file"
 # Just for re-building remove previous build first
 # rm -rf "$build_dir"
 
-cmake -S "$llama_root" -B "$build_dir" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DGGML_CUDA=ON \
-  -DGGML_CUDA_FA_ALL_QUANTS=ON \
-  -DCMAKE_CUDA_ARCHITECTURES="$arch" \
-  -DLLAMA_BUILD_EXAMPLES=OFF \
+cmake_args=(
+  -S "$llama_root"
+  -B "$build_dir"
+  -DCMAKE_BUILD_TYPE=Release
+  -DLLAMA_BUILD_EXAMPLES=OFF
   -DLLAMA_BUILD_TESTS=OFF
+)
+if [[ "$os" != "Darwin" ]]; then
+  cmake_args+=(
+    -DGGML_CUDA=ON
+    -DGGML_CUDA_FA_ALL_QUANTS=ON
+    "-DCMAKE_CUDA_ARCHITECTURES=$arch"
+  )
+fi
+# macOS: GGML_METAL defaults to ON; nothing extra required.
+
+cmake "${cmake_args[@]}"
 
 cmake --build "$build_dir" --config Release --target llama-server --parallel
 

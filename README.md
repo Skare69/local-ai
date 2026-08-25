@@ -5,8 +5,8 @@ Scripts for building a CUDA-enabled, FastMTP-patched
 Qwen3.8 27B Aggressive GGUF release.
 
 - **Windows**: PowerShell 7.4+ scripts (`*.ps1`)
-- **Linux / macOS**: bash scripts (`*.sh`); macOS has no CUDA support, so only
-  CPU builds are possible there
+- **Linux / macOS**: bash scripts (`*.sh`); on Apple silicon the build uses
+  Metal GPU acceleration automatically instead of CUDA
 
 Both sets do the same thing: clone llama.cpp beside this repository, pin it,
 apply the patch, build `llama-server`, download model assets, and start the
@@ -67,7 +67,10 @@ the sidecar is fine but you ran an unpatched binary.
 
 ### Linux / macOS
 
-macOS: omit `-DGGML_CUDA=ON` below for a CPU-only build.
+macOS/Apple silicon: the installer detects Darwin, skips CUDA entirely, and
+compiles with Metal (llama.cpp enables `GGML_METAL` by default) — the same
+model then runs on the Mac's unified-memory GPU. `-a` is ignored there.
+On Linux the flag is required.
 
 ```bash
 ./install-llamacpp.sh -a native                          # or e.g. -a 89, -a "86;89"
